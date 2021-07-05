@@ -13,3 +13,7 @@ func Watch(cb func(data []byte)) {
 
 	C.WatchClipboard()
 }
+
+func StopWatching() {
+	C.StopWatchingClipboard()
+}

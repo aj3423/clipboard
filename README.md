@@ -4,9 +4,20 @@ Golang clipboard watcher for linux, using event notification of X11.
 # usage
 ```golang
 func main() {
-	clipboard.Watch(func(data []byte) {
-		fmt.Println(string(data))
-	})
+	// watch
+	go func() {
+		clipboard.Watch(func(data []byte) {
+			fmt.Println(string(data))
+		})
+	}()
+
+	// stop watching after 15 seconds
+	go func() {
+		time.Sleep(15 * time.Second)
+		clipboard.StopWatching()
+	}()
+
+	time.Sleep(time.Hour)
 }
 ```
 

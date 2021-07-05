@@ -1,10 +1,12 @@
 /*#include "./c.h"*/
-#include <stdbool.h>
-#include <stdio.h>
-#include <limits.h>
+#include <stdbool.h> // bool
+#include <string.h> // memset
+#include <limits.h> // LONG_MAX
 #include <X11/extensions/Xfixes.h>
 
 extern void GoCallback(char* out, int out_len);
+
+bool watching = false;
 
 bool GetSelection(
 	Display *display, Window window, const char *bufname, const char *fmtname)
@@ -43,12 +45,15 @@ bool GetSelection(
 	else // request failed, e.g. owner can't convert to the target format
 		return false;
 }
-bool WatchClipboard()
-{
+
+Display* display;
+Window window;
+
+bool WatchClipboard() {
 	const char* bufname = "CLIPBOARD";
-	Display *display = XOpenDisplay(NULL);
+	display = XOpenDisplay(NULL);
 	unsigned long color = BlackPixel(display, DefaultScreen(display));
-	Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0,0, 1,1, 0, color, color);
+	window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0,0, 1,1, 0, color, color);
 
 
 	int event_base, error_base;
@@ -60,7 +65,9 @@ bool WatchClipboard()
 	}
 	XFixesSelectSelectionInput(display, DefaultRootWindow(display), bufid, XFixesSetSelectionOwnerNotifyMask);
 
-	while (true) {
+	watching = true;
+
+	while (watching) {
 		XNextEvent(display, &event);
 
 		if (event.type == event_base + XFixesSelectionNotify &&
@@ -74,4 +81,21 @@ bool WatchClipboard()
 	XDestroyWindow(display, window);
 	XCloseDisplay(display);
 	return true;
+}
+
+/*
+* Send a dummy message to break the XNextEvent()
+* refer to: https://stackoverflow.com/questions/8592292/how-to-quit-the-blocking-of-xlibs-xnextevent
+*/ 
+void StopWatchingClipboard() {
+	if(!watching) return;
+	watching = false;
+
+	XClientMessageEvent dummyEvent;
+	memset(&dummyEvent, 0, sizeof(XClientMessageEvent));
+	dummyEvent.type = ClientMessage;
+	dummyEvent.window = window;
+	dummyEvent.format = 32;
+	XSendEvent(display, window, 0, 0, (XEvent*)&dummyEvent);
+	XFlush(display);
 }
