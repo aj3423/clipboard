@@ -1,4 +1,4 @@
-# clipboard
+# clipboard watcher
 Golang clipboard watcher for linux, using event notification of X11.
 
 # usage
